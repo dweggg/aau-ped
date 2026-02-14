@@ -1,0 +1,61 @@
+expr =
+  Ld*Re[Exp[I*x]/Exp[I*0]]*Re[Exp[I*x]/Exp[-I*2*Pi/3]] +
+  Lq*Re[Exp[I*(x + Pi/2)]/Exp[I*0]]*Re[Exp[I*(x + Pi/2)]/Exp[-I*2*Pi/3]]
+
+
+
+assumptions = {x \[Element] Reals, Ld \[Element] Reals, Lq \[Element] Reals}
+
+
+
+TrigReduce[
+  FullSimplify[expr, Assumptions -> assumptions]
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+In[26]:= expr =
+  Ld*Re[Exp[I*x]/Exp[I*0]]*Re[Exp[I*x]/Exp[I*4*Pi/3]] +
+  Lq*Re[Exp[I*(x + Pi/2)]/Exp[I*0]]*Re[Exp[I*(x + Pi/2)]/Exp[I*4*Pi/3]]
+In[27]:= assumptions = {x \[Element] Reals, Ld \[Element] Reals, Lq \[Element] Reals}
+In[28]:= Simplify[expr, Assumptions -> assumptions]
+
+                I x         1/6  I x           I x         2/3  I x
+Out[28]= Lq Im[E   ] Re[(-1)    E   ] + Ld Re[E   ] Re[(-1)    E   ]
+In[29]:= FullSimplify[expr, Assumptions -> assumptions]
+
+                    2                                                2
+         -(Ld Cos[x] ) + Sqrt[3] (-Ld + Lq) Cos[x] Sin[x] - Lq Sin[x]
+Out[29]= -------------------------------------------------------------
+                                       2
+
+In[30]:= TrigReduce[%]
+
+         -Ld - Lq - Ld Cos[2 x] + Lq Cos[2 x] - Sqrt[3] Ld Sin[2 x] + Sqrt[3] Lq Sin[2 x]
+Out[30]= --------------------------------------------------------------------------------
+                                                4
+
+In[31]:= Factor[%]
+
+         -Ld - Lq - Ld Cos[2 x] + Lq Cos[2 x] - Sqrt[3] Ld Sin[2 x] + Sqrt[3] Lq Sin[2 x]
+Out[31]= --------------------------------------------------------------------------------
+                                                4
+
+In[32]:= TrigReduce[
+  FullSimplify[expr, Assumptions -> assumptions]
+]
+
+         -Ld - Lq - Ld Cos[2 x] + Lq Cos[2 x] - Sqrt[3] Ld Sin[2 x] + Sqrt[3] Lq Sin[2 x]
+Out[32]= --------------------------------------------------------------------------------
+                                                4

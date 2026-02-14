@@ -1,0 +1,9 @@
+# Fdb version 4
+["pdflatex"] 0 "/mnt/data/Desktop/st/workshop1.Rmd" "workshop1.pdf" "workshop1" 0 -1
+  "/mnt/data/Desktop/st/workshop1.Rmd" 0 -1 0 ""
+  "workshop1.aux" 0 -1 0 "pdflatex"
+  (generated)
+  "workshop1.aux"
+  "workshop1.log"
+  "workshop1.pdf"
+  (rewritten before read)

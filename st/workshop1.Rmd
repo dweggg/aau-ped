@@ -1,0 +1,306 @@
+---
+title: "Workshop 1"
+author: "David Redondo"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r , include=FALSE}
+library(mosaic) # load the mosaic package for later use
+library(jpeg)
+
+```
+
+# Exam exercise for Module 1: Wind speed distributions
+
+
+In this workshop we consider a continuous probability distribution
+called the Weibull distribution. Among other things, it is used to model
+wind speed distributions.
+
+Part I is a purely theoretical exercise which you should answer using
+pen and paper only. For Part II and III we recommend that you answer the
+exercises using Rmarkdown (you can simply use the exam Rmarkdown file as
+a starting point).
+
+There are many calculations of integrals in this execise. At the exam, you will not have the time to go through all of them in detail. It is enough to go through the main points.
+
+# Part I: The Weibull distribution
+
+The Weibull distribution depends on two parameters $k>0$ and $\lambda>0$. If
+$X$ follows a Weibull distribution with parameters $k$ and $\lambda$, we
+write $X\sim \texttt{weibull}(k,\lambda)$. In this case, $X$ has the
+probability density function
+$$f(x)=\begin{cases}\frac{k}{\lambda}\left( \frac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k},& x>0,\\
+0,&x\leq 0.\end{cases}$$
+
+The parameter $k$ is called the shape parameter, since it determines the
+shape of the distribution, while $\lambda$ is called the scale
+parameter, because it works by scaling the $x$-axis. The plots below
+show the density of a Weibull distribution with $\lambda=1$ for
+different values of $k$.
+
+1.  Suppose $X\sim \texttt{weibull}(k,\lambda)$. Show that the distribution
+    function of $X$ is $F(x) =1- e^{-(x/\lambda)^k}$ for $x>0$. (Hint: Recall that the distribution function is
+    defined by $F(x)=P(X\leq x).$ Write this as an integral and apply
+    the substitution $u=(x/\lambda)^k$.)
+
+$$f(x)=\begin{cases}\frac{k}{\lambda}\left( \frac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k},& x>0,\\
+0,&x\leq 0.\end{cases}$$
+
+$$F(x) = P(X\leq x) = \int_{0}^{x}f(x) dx = \int_{0}^{x}\frac{k}{\lambda}\left( \frac{x}{\lambda}\right)^{k-1}e^{-(x/\lambda)^k} dx$$
+
+$$u=\left(\frac{x}{\lambda}\right) ^k \rightarrow \frac{du}{dx}=\frac{k}{\lambda^k}\cdot x^{k-1} \rightarrow du=\frac{k}{\lambda}\left(\frac{x}{\lambda}\right)^{k-1} dx$$
+
+$$
+\begin{aligned}
+F(x)
+&= \int_{0}^{u} e^{-u}\,du 
+&= \left[-e^{-u}\right]_{0}^{u} 
+&= \left[-e^{-(x/\lambda)^k}\right]_{0}^{(x/\lambda)^k}
+&= -e^{-(x/\lambda)^k} + e^{0} 
+&= 1 - e^{-(x/\lambda)^k}.
+\end{aligned}
+$$
+
+
+2.  Show that the distribution function $F(x)$ satisfies
+    $$\ln(-\ln(1-F(x)))=-k\ln(\lambda) + k\ln(x).$$
+
+$$
+\begin{aligned}
+\ln(-\ln(1-F(x))) = \ln(-\ln(1-(1 - e^{-(x/\lambda)^k})))\\
+&= \ln(-\ln(e^{-(x/\lambda)^k})) = \ln(-(-(x/\lambda)^k))\\
+&= \ln((x/\lambda)^k) = k\cdot \ln(x/\lambda) = k\ln(x)-k\ln(\lambda) \\
+&= -k\ln(\lambda) + k\ln(x)
+\end{aligned}
+$$
+
+3.  Show that the mean value of $X$ is $\lambda\Gamma(1+\tfrac{1}{k})$.
+    (Hint: Remember that the gamma function is given by
+    $\Gamma(s)=\int_{0}^{\infty}u^{s-1}e^{-u} du.$)
+
+$$
+\begin{aligned}
+\mu &= \int_{-\infty}^{\infty} x \cdot f(x) \, dx,\\
+f(x) &= 
+\begin{cases}
+\frac{k}{\lambda} \left( \frac{x}{\lambda} \right)^{k-1} e^{-(x/\lambda)^k}, & x > 0,\\
+0, & x \leq 0,
+\end{cases}\\
+\mu = \int_{0}^{\infty} x \cdot \frac{k}{\lambda} \left( \frac{x}{\lambda} \right)^{k-1} e^{-(x/\lambda)^k} dx\\
+u = \left( \frac{x}{\lambda} \right)^k, \quad du = \frac{k}{\lambda} \left( \frac{x}{\lambda} \right)^{k-1} dx \\
+\mu = \int_{0}^{\infty} x \cdot e^{-u} du , x = \lambda u^{-k} \\
+\mu = \int_{0}^{\infty} \lambda u^{-k} \cdot e^{-u} du \\
+\Gamma (s) = \int_{0}^{\infty} u^{s-1} \cdot e^{-u} du \\
+1/k = s - 1 \rightarrow s = 1/k + 1\\
+\therefore \mu = \lambda\Gamma(1/k + 1)
+\end{aligned}
+$$
+
+4.  By similar calculations, one may show that the variance of $X$ is
+    $\lambda^2(\Gamma(1+\tfrac{2}{k})-\Gamma(1+\tfrac{1}{k})^2)$. What is the standard deviation? 
+$$\sigma = \lambda\sqrt{\Gamma(1+\tfrac{2}{k})-\Gamma(1+\tfrac{1}{k})^2}$$
+
+# Part II: Wind speed measurements
+
+In this part we consider a data set containing wind speed measurements
+from a Danish weather station located at Sjælsmark. The data set
+contains the wind speed measured at 12 noon every day of January in the
+years 2001-2019. We first load the data set:
+
+```{r}
+speed<-read.delim("https://asta.math.aau.dk/datasets?file=windSpeed.txt",header=FALSE)[,1]
+```
+
+1.  Draw a histogram of the wind speed observations by editing the R
+    chunk below. Explain how a histogram is constructed. Do you think
+    the observations come from a normal distribution?
+
+```{r}
+library(mosaic)
+
+gf_histogram(~ speed,bins=25)
+```
+In the following we will convince ourselves that the data actually comes
+from a Weibull distribution. We order the $n=589$ observations from
+smallest to largest $$x_{(1)}\leq x_{(2)}\leq \dotsm \leq x_{(n)}.$$
+
+```{r}
+speed_sorted <- sort(speed)
+```
+
+
+2.  Argue that $F(x_{(i)})\approx \tfrac{i}{n}$ for $i=1,\ldots,n$. (Hint: How many observations are less than or equal to $x_{(i)}$?)
+
+```{r}
+# Number of observations
+n <- length(speed_sorted)
+
+# Create the index i = 1,2,...,n
+i <- 1:n
+
+# Approximate CDF at x_(i) = i/n
+F_approx <- i / n
+
+# speed_sorted is already your sorted data, then Evaluate CDF at each x_(i)
+F_empirical <- ecdf(speed_sorted)  # creates the ECDF function
+F_values <- F_empirical(speed_sorted)
+
+plot(speed_sorted, F_values)
+lines(speed_sorted, F_approx, col="red")
+
+
+
+# Combine into a plot to see. If it's close to the y=x plot it means that they are close
+plot(F_approx, F_values)
+abline(0, 1, col="red", lwd=2)
+```
+
+3.  Using Exercise 2 in Part I, argue that if the observations come from
+    a $\texttt{weibull}(k,\lambda)$ distribution, then
+    $$\ln(-\ln(1-\tfrac{i}{n}))\approx -k\ln(\lambda) + k\ln(x_{(i)}).$$
+If it's a Weibull distribution, as shown per the previous analysis, the following expression is true when $f(x)=weibull(x,k,\lambda)$:
+$$\ln(-\ln(1-F(x)))= -k\ln(\lambda) + k\ln(x)$$
+
+Now we know that $F(x)\approx \frac{i}{n}$, then:
+$$\ln(-\ln(1-\tfrac{i}{n}))\approx -k\ln(\lambda) + k\ln(x_{(i)})$$
+
+
+The code below computes a vector containing the values
+$v_i=\ln(-\ln(1-\tfrac{i}{n}))$ and a vector containing the values
+$u_i = \ln(x_{(i)}).$
+
+```{r, message=FALSE}
+n<-length(speed)
+sortedSpeed<-sort(speed)
+u<-log(sortedSpeed)
+CDF<-(1:n)/n
+v<-log(-log(1-CDF))
+plot(u,v)
+abline(-2.82, 1.78, col="red", lwd=2)
+
+```
+
+4.  Argue that the points $(u_i,v_i)$ should lie approximately on a
+    straight line if the observations come from a
+    $\texttt{weibull}(k,\lambda)$ distribution. Edit the code above to
+    check that this is the case.
+
+The term $-k\ln(\lambda) + k\ln(x_{(i)})$ can be thought as a linear function of $ln(x_{i})$, where $-k\ln(\lambda)$ is a constant and $k$ is the slope. If we then plot $ln(x_{i})$ against $\ln(-\ln(1-\tfrac{i}{n}))$ the resulting intercept would equal to $-k\ln(\lambda)$, and the slope would just be $k$.
+
+5.  The intercept and slope of the line can be found to be $-2.82$ and
+    $1.78$, respectively. Use this to give estimates of the parameters
+    $k$ and $\lambda$ of the model. Insert these values in the code
+    below to plot the histogram together with the approximate density
+    (`shape` is $k$ and `scale` is $\lambda$).
+
+1. Slope is directly the value of k
+$$\begin{aligned}
+k = 1.78
+\end{aligned}
+$$
+
+2. $\lambda$ can be calculated from the intercept
+$$\begin{aligned}
+-k\cdot \ln(\lambda) = -2.82\\
+\lambda = e^{-2.82/(-k)} = e^{-2.82/(-1.78)} = 4.87
+\end{aligned}
+$$
+
+```{r}
+k <- 1.78
+lambda <- 4.87
+gf_dhistogram( ~ speed, bins = 25) %>%
+gf_dist("weibull", shape = k, scale = lambda, col = "red")
+```
+
+# Part III: Sample mean and the central limit theorem
+
+In this last exercise, we investigate the distribution of the sample
+mean when a random sample is taken from a population having a
+$\texttt{weibull}(k,\lambda)$ distribution. We will use the values of
+$k$ and $\lambda$ that you found in Part II, Exercise 5 to mimic a
+sample of wind speed measurements.
+
+1.  What is the mean and standard deviation in the population
+    distribution? Use the calculations from Part I. (Hint: You can use
+    the function `gamma()` in R to compute the gamma function.)
+
+The mean value of $X$ is $\lambda\Gamma(1+\tfrac{1}{k})$ and the standard deviation is
+$$\sigma = \lambda\sqrt{\Gamma(1+\tfrac{2}{k})-\Gamma(1+\tfrac{1}{k})^2}$$.
+
+```{r}
+mu <- lambda*gamma(1+1/k)
+sigma <- lambda*sqrt(gamma(2+1/k) - gamma(1+1/k)^2)
+```
+```{r}
+mu
+sigma
+```
+
+
+2.  Suppose that a sample consists of 30 observations from this
+    distribution. We denote the sample mean by `x_bar`. Using the
+    central limit theorem, answer the following questions:
+
+-   What is the expected value of `x_bar`?
+CLT explains that the expected value of x_bar is the mean of the distribution, calcualted before as:
+
+```{r}
+x_bar <- mu
+x_bar
+```
+
+-   What is the standard deviation of `x_bar` (also called the standard
+    error)?
+```{r}
+n <- 30
+se <- sigma/sqrt(n)
+se
+```
+-   What is the approximate distribution of `x_bar`?
+
+By the Central Limit Theorem, for sufficiently large `n`, the sample mean `x_bar` is approximately normally distributed, regardless of the shape of the original Weibull distribution.
+
+$\bar x \approx N\left(\mu,\frac{\sigma}{\sqrt{n}} \right)$
+
+
+The code below generates 30 independent realizations of a Weibull
+distribution with parameters $k$ and $\lambda$. One may think of this of
+as simulated random sample of 30 independent wind speed observations.
+
+```{r}
+x<-rweibull(30, shape=k, scale=lambda)
+mean(x)
+```
+
+4.  Insert the values of $k$ and $\lambda$ from Part II, Exercise 5 in
+    the code. Run the command a few times. Is each sample mean close to
+    what you expected?
+
+Use `replicate` to repeat the sampling 500 times and save each mean
+value in the vector `x_bar`:
+
+```{r}
+x_bar <- replicate(500, mean(rweibull(30, shape=k, scale = lambda) ))
+x_bar
+```
+The values inside `x_bar` are somewhat close to the calculated value of `mu`.
+
+5.  Calculate the mean and standard deviation of the values in `x_bar`.
+    How do they match with what you expected?
+```{r}
+mean(x_bar)
+sd(x_bar)
+```
+
+Both values align with the previously calculated `mu` and `sigma`.
+
+6.  Make a QQ-plot to assess the distribution of `x_bar`. Does this look
+    like what you would expect?
+```{r}
+qqnorm(x_bar) # plots the quantiles of x_bar against the theoretical quantiles of a standard normal distribution
+qqline(x_bar) # adds a straight line through the first and third quartiles, if the points fall roughly along this line, x_bar is approximately normal
+```
+

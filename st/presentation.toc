@@ -1,0 +1,4 @@
+\beamer@sectionintoc {1}{Workshop 1: Wind Speed Distributions}{2}{0}{1}
+\beamer@sectionintoc {2}{Workshop 2: Seasonal Wind Speed}{16}{0}{2}
+\beamer@sectionintoc {3}{Workshop 3: Battery Capacity}{25}{0}{3}
+\beamer@sectionintoc {4}{Workshop 4: DC Motor Model}{37}{0}{4}

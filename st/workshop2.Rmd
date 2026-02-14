@@ -1,0 +1,160 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Exam exercise: Seasonal wind speed
+
+It is highly recommended that you answer the exam using Rmarkdown
+(you can simply use the exam Rmarkdown file as a starting point).
+
+The data set for this exam problem contains measurements of the quarterly average wind speed in the years 2001-2019. The measurements were made at the Danish weather station Sjælsmark in the years 2001-2019. 
+
+We first read in the data:
+```{r message=FALSE}
+library(mosaic)
+wind <- read.delim("https://asta.math.aau.dk/datasets?file=speed_quarterly.txt",sep="")
+head(wind)
+```
+We saw in Exam exercise 1 that wind speed measurements are Weibull distributed. However, because of the central limit theorem, when we take the average of hourly measurements from three months, these values will be close to having a normal distribution. Hence, we will assume in this workshop that the quarterly averages are normally distributed. 
+
+Throughout the exercise, we use a significance level of $\alpha=0.05.$
+
+
+
+# Part I: Comparison of wind speed for spring and autumn
+
+In part I we compare the wind speed in spring and autumn. 
+The questions for Part I should be answered using pen and paper. You may use R as a calculator. You can use the output from `favstats` in your computations:
+```{r}
+favstats(~speed|quarter,data=wind)
+```
+
+
+1. Make an $F$-test to check whether the variance is the same in spring and autumn. 
+
+$H_0:\sigma^2_{spring}=\sigma^2_{autumn}$
+$H_A:\sigma^2_{spring}\neq\sigma^2_{autumn}$
+
+**This is a two-sided test because we care about whether spring's variance is higher or lower than autumn's.**
+
+```{r}
+# SDs
+sd_autumn <- favstats(~speed|quarter,data=wind[wind$quarter == "autumn", ])$sd
+sd_spring <- favstats(~speed|quarter,data=wind[wind$quarter == "spring", ])$sd
+
+# Degrees of freedom
+n_autumn <- favstats(~speed|quarter,data=wind[wind$quarter == "autumn", ])$n
+n_spring <- favstats(~speed|quarter,data=wind[wind$quarter == "spring", ])$n
+df_autumn <- n_autumn-1
+df_spring <- n_spring-1
+
+# F-statistic
+Ft <- sd_spring^2/sd_autumn^2
+
+# Two-sided p-value
+p_value_1 <- 2 * min(pf(Ft, df1=df_spring, df2=df_autumn),
+                   1 - pf(Ft, df1=df_spring, df2=df_autumn))
+p_value_1
+```
+
+**The p-value is large, so we do not reject the null hypothesis of equal variances. We can assume the variances in spring and autumn are approximately equal.**
+
+2. Make a t-test to compare the mean wind speed in spring and autumn. What is the null hypothesis and the corresponding alternative hypothesis? Explain how the test statistic and p-value are computed? What is the conclusion of the analysis?
+$H_0:\mu_{spring}=\mu_{autumn}$
+$H_A:\mu_{spring}\neq\mu_{autumn}$
+
+**This is a two-sided test because we care about whether spring's mean is higher or lower than autumn's.**
+
+**Because we assume equal variances, we combine the variances from both groups:**
+```{r}
+df<-n_autumn+n_spring-2
+sp_2 <- ((n_autumn-1)*sd_autumn^2+(n_spring-1)*sd_spring^2)/(df)
+sp <- sqrt(sp_2)
+```
+**Compute the SE of the difference:**
+```{r}
+SE <- sp*sqrt(1/n_autumn + 1/n_spring)
+```
+
+**How far apart are the sample means compared to the natural variability of the data? Compute the t-statistic:**
+```{r}
+mu_autumn <- favstats(~speed|quarter,data=wind[wind$quarter == "autumn", ])$mean
+mu_spring <- favstats(~speed|quarter,data=wind[wind$quarter == "spring", ])$mean
+t <- (mu_spring-mu_autumn)/SE
+```
+
+**If the null hypothesis ($H_0:\mu_{spring}=\mu_{autumn}$) were true, how likely is it to see a t-statistic this extreme (or more extreme) just by random chance? Now we find the p-value and evaluate our hypothesis:**
+```{r}
+p_value_2 <- 2 * (1 - pt(abs(t), df))
+p_value_2
+```
+
+**Since $p<0.05$ , we reject $H_0$, meaning that the difference in means is statistically significant.**
+
+3. Make a 95\% confidence interval for the difference between mean wind speed in spring and autumn. What is the interpretation of the confidence interval?
+
+**The confidence interval is calculated as:**
+```{r}
+mu_conf <- mu_spring-mu_autumn
+t_ask <- qt(1-0.05/2, df)
+margin <- t_ask * SE
+
+confidence_interval <- c(mu_conf-margin, mu_conf+margin)
+confidence_interval
+```
+**We are 95% confident that the true difference in mean wind speed (spring  autumn) lies between these two numbers and since the interval is above 0, spring wind speeds are significantly higher than autumn wind speeds.**
+
+## Part II: Comparing all four quarters
+
+In this part we compare all four quarters of the year.
+
+1. Make a box plot of the variable `speed` for each quarter and explain how a boxplot is computed. 
+
+**A boxplot is obtained by sorting the data, then finding the quartiles (Q1, Q2, Q3). Next, a box is drawn in the interquartile range (Q3-Q1), and the median (Q2) is also marked. Finally, the whiskers are drawn as $Q1-1.5\cdot IQR$ and $Q3+1.5\cdot IQR$. Data points outside the IQR (outliers) are represented as dots.**
+```{r}
+gf_boxplot(~speed | quarter, data = wind)
+```
+
+2. Test the null-hypothesis that the mean wind speed is the same for all four quarters by editing the code below. Explain the parameter estimates in the output.
+
+**We are testing the null hypothesis**
+$$H_0 : \mu_{spring} = \mu_{summer} = \mu_{autumn} = \mu_{winter}$$
+
+```{r}
+model <- lm(speed ~ quarter, data = wind)
+summary(model)
+```
+
+**The `Estimate` column in the `(Intercept)` row represents the mean for autumn, and the rest of the values in `Estimate` are the difference of the rest of the quarters against autumn, in `m/s`. The differences in means are high (2.88m/s to 3.72m/s), and the value of `Multiple R-squared: 0.5197` indicates that 52% of the total variability in wind speeds is explained by the quarter. Since the p-value of the F-test is less than 0.05 (1.711e-11), we reject the null hypothesis that the mean wind speed is the same for all four quarters.**
+
+To find out which quarters differ, we can make pairwise comparisons. We could use the pairwise t-tests as in Part I, Exercise 3. However, there is a problem with this approach:
+
+3. How many pairwise comparisons of quarterly mean values can we make? What is the probability of rejecting a single true null-hypothesis?  If we test several true null-hypotheses, explain why the probability of falsely rejecting at least one of them is larger than the significance level. 
+
+**We can pair the quarters as spring vs summer, spring vs autumn, spring vs winter, summer vs autumn, summer vs winter, and autumn vs winter, so 6 pairs in total.
+A single true null hypothesis has a probability of being rejected of 0.05 (significance level $\alpha=0.05$).
+Falsely rejecting would mean the opposite, so $P_{not reject} = 1-\alpha=0.95$. Falsely rejecting all 6 tests would be $0.95^6 = 0.735$. So the probability of a single false rejection is $1-0.735 = 0.265$. The more tests you perform, the higher the chance that at least one result looks significant purely by chance, since when many tests are performed, errors accumulate.** 
+
+This phenomenon is known as multiple testing. We can adjust the pairwise t-tests for multiple testing by performing a so-called Tukey's test. It replaces the t-distribution by a different distribution (the studentized range distribution) that takes multiple testing into account.
+
+4. Tukey's test can be performed using the code below. Which quarters differ significantly? 
+
+```{r}
+model<-aov(speed~quarter,data=wind)
+TukeyHSD(model, conf.level=.95)
+```
+
+**From Tukey's it can be understood that winter has a higher mean than all other quarters (all `diff` are high) and all p-values are very small. Summer and spring differ, with the latter showing significantly higher winds, and is statistically significant. The other two comparisons (spring-autumn and summer-autumn are not statistically significant since p>0.05).**
+
+5. Compare the confidence interval for the difference between spring and autumn from Tukey's test to the one you computed in Part I, Exercise 3. What is different?
+$$ 
+\text{t-test}\rightarrow [0.07740868, 0.42686643]
+$$
+Does not include 0, hence it suggests a significant difference between spring and autumn.
+
+$$
+\text{Tukey's} \rightarrow [-0.01211513, 0.51639024]
+$$
+Wider, and includes 0, so spring and autumn are not significantly different after adjusting for multiple comparisons.

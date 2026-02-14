@@ -1,0 +1,192 @@
+---
+title: "Battery capacity"
+output:
+  pdf_document: default
+---
+
+
+# Exam exercise: Battery capacity
+
+```{r, fig.width=10, echo=FALSE, fig.align='center'}
+url <- "https://asta.math.aau.dk/static-files/asta/img/battery.png"
+z <- tempfile()
+download.file(url, z, mode = "wb")
+grid::grid.raster(png::readPNG(z))
+invisible(file.remove(z))
+```
+
+In this exercise you will study a data set on battery capacity collected by researchers from AAU Energy. The batteries were kept at three different temperatures. The capacity loss Q (in percentage of initial capacity) is the response variable. We are interested in the effect on the response of the temperature and the efficient number of charge cycles FEC that the battery had been exposed to. 
+
+In the analysis, we will work with the log  transformed variables `logQ` and `logFEC`. Moreover, we will consider `Temperature` as a categorical variable with the three levels $35^\circ$, $40^\circ$, and $45^\circ$ Celcius.
+
+We begin by loading the `mosaic` package and reading in the data. Since we consider `Temperature` a categorical variable, we make this variable a factor.
+```{r, message=FALSE}
+library(mosaic)
+capacity<-read.delim("https://asta.math.aau.dk/datasets?file=capacity.txt",sep="")
+capacity$Temperature<-factor(capacity$Temperature) 
+```
+
+1. Make a scatter plot of the log transformed variables `logQ` and `logFEC` where points are colored by temperature level.
+
+```{r}
+
+plot(capacity$logQ, capacity$logFEC,
+     col = capacity$Temperature, #categories
+     pch = 19, #symbol for markers 
+     xlab = "logQ",
+     ylab = "logFEC")
+legend("topleft", legend = levels(capacity$Temperature),
+       col = 1:length(levels(capacity$Temperature)), pch = 19)
+```
+
+2. The code below finds the correlation between `logQ` and `logFEC` for each level of temperature. Explain the concept of correlation and interpret the results in relation to the plot from Question 1. 
+```{r }
+tempGrupper=split(capacity,capacity$Temperature)
+lapply(tempGrupper,function(x) cor(x$logQ,x$logFEC)) 
+```
+**The absolute value of R (correlation) measures the (linear) strength of dependence between `logQ` and `logFEC`. Since all three values are very close to `1`, we can assume that `logQ` and `logFEC` are very correlated.**
+
+3. Consider a multiple regression model without interaction with `logQ` as the response variable and `logFEC` and `Temperature` as predictors. Write out the model equation using dummy variables. What is the interpretation of the parameters? 
+
+$\log(\text{Q}) = \alpha + \beta_1\cdot\log(\text{FEC}) + \beta_2\cdot\text{T} + \epsilon$
+
+- **$\alpha$ is the intercept. It corresponds to the value of $\log(\text{Q})$ when both $\log(\text{FEC})$ and T are 0.**
+- **$\beta_1$ and $\beta_2$ describe the change in the mean response ($\log(\text{Q})$), when   $\log(\text{FEC})$ or T are changed one unit respectively.**
+- **$\epsilon$ is an error with a `norm(0,`$\sigma$`)` distribution.**
+
+4. Edit the code below to fit the model from Question 3.
+
+```{r}
+#tempArray <- as.numeric(as.character(capacity$Temperature))
+model<-lm(logQ ~ logFEC + factor(capacity$Temperature),data=capacity)
+summary(model)
+```
+
+ Explain the output from the code. Your explanation should as a minimum include:
+
+  - What is the prediction equation?
+  
+  $\log(\text{Q}) = \alpha + \beta_1\cdot\log(\text{FEC}) + \beta_2\cdot\text{T} + \epsilon$
+  
+  $\log(\text{Q}) = -0.152700 + 0.410957\cdot\log(\text{FEC}) + 0.010693\cdot\text{T} + \epsilon$
+
+
+  - Explain the calculation of `t value` and determination and interpretation of the p-value.
+  
+**`t value` is calculated as $t=\frac{\text{Estimate}}{\text{Std. Error}}.$**
+
+**The p-value is derived from the t-value using the t-distribution, which depends on the degrees of freedom. It quantifies the probability of getting a t-value that big (or bigger) if the true effect were actually zero.**
+
+
+  - What is the interpretation of `Multiple R-squared`?
+
+**It measures the proportion of the variation in the response variable (`logQ`) that is explained by the predictors (`logFEC` and Temperature) in the model.**
+
+  - Make an overall $F$-test for the null-hypothesis that there is no effect of any of the predictors.
+
+```{r}
+anova(model)
+```
+
+**`F value` is the ratio of explained variance to unexplained variance and `Pr(>F)` is the p-value for the F-test of each predictor. From the values, we can reject the null hypothesis. At least one predictor (actually both in this case) significantly affects log(Q).**
+
+5. Investigate whether or not there is an interaction between the effect of `Temperature` and the effect of `logFEC` as predictors of `logQ` (Hint: With more than two groups you need to use the `anova` function to make the test, see p. 31 in the slides from the second lecture of the module).
+```{r}
+model_interaction <- lm(logQ ~ logFEC * factor(capacity$Temperature), data=capacity)
+summary(model_interaction)
+
+anova(model, model_interaction)
+```
+
+**Comparing the model without interaction to the model with interaction:**
+
+**`F = 2.3183, p = 0.1334`, not significant.**
+
+**Adding the interaction does not significantly improve the model. There is no significant interaction between `Temperature` and `logFEC`.**
+
+
+6. Plot the model with and without interaction and explain the difference.
+```{r}
+library(ggplot2)
+
+# make sure Temperature is a factor
+capacity$Temperature <- factor(capacity$Temperature)
+
+# Fit models using the factor variable
+model_no_interaction <- lm(logQ ~ logFEC + Temperature, data = capacity)
+model_interaction   <- lm(logQ ~ logFEC * Temperature, data = capacity)
+
+summary(model_no_interaction)
+summary(model_interaction)
+
+# Compare models (test for interaction)
+anova(model_no_interaction, model_interaction)
+
+# Create grid for predictions using Temperature levels (same names as model)
+newdat <- expand.grid(
+  logFEC = seq(min(capacity$logFEC, na.rm = TRUE),
+               max(capacity$logFEC, na.rm = TRUE),
+               length.out = 200),
+  Temperature = levels(capacity$Temperature)
+)
+
+# Predict from both models (now newdat matches the model variables)
+newdat$pred_no_interaction <- predict(model_no_interaction, newdata = newdat)
+newdat$pred_interaction    <- predict(model_interaction, newdata = newdat)
+
+ggplot(capacity, aes(x = logFEC, y = logQ, color = Temperature)) +
+  geom_point(alpha = 0.8, size = 2) +
+  geom_line(
+    data = newdat,
+    aes(y = pred_no_interaction),
+    size = 1
+  ) +
+  labs(
+    title = "No-interaction model",
+    subtitle = "Common slope across temperatures (parallel lines)",
+    x = "logFEC",
+    y = "logQ"
+  ) +
+  theme_minimal()
+
+ggplot(capacity, aes(x = logFEC, y = logQ, color = Temperature)) +
+  geom_point(alpha = 0.8, size = 2) +
+  geom_line(
+    data = newdat,
+    aes(y = pred_interaction),
+    size = 1
+  ) +
+  labs(
+    title = "Interaction model",
+    subtitle = "Different slopes by temperature",
+    x = "logFEC",
+    y = "logQ"
+  ) +
+  theme_minimal()
+
+# Residual boxplot for the no-interaction model
+residuals_no_int <- residuals(model_no_interaction)
+boxplot(residuals_no_int,
+        main = "Boxplot of residuals (no-interaction model)",
+        ylab = "Residuals",
+        col = "lightblue", horizontal = TRUE)
+abline(h = 0, col = "red", lty = 2)
+
+```
+7. The code below computes the residuals $y_i-\hat{y}_i$ in the model without interaction. Draw a boxplot of the residuals and comment on the result.
+```{r}
+# compute residuals
+residuals <- model$residuals  # or m0$residuals if using the variable from previous chunk
+
+# create a boxplot of residuals
+boxplot(residuals,
+        main = "Boxplot of residuals (no-interaction model)",
+        ylab = "Residuals",
+        col = "lightblue",
+        horizontal = TRUE)
+
+# optionally, add a horizontal line at 0
+abline(h = 0, col = "red", lty = 2)
+```
+The median residual (thick line in the box) is very close to 0, which suggests that the model predictions are roughly unbiased on average. There are several points outside the whiskers, on both the left and right sides. Negative outliers (~ -0.2 to -0.1) indicate that the model overestimates `logQ` for these observations.
+
